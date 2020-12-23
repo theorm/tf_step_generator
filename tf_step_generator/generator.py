@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple, Any, Callable
 from dataclasses import dataclass
 import torch
 import torch.cuda
@@ -34,9 +34,11 @@ class GenerationStepResults:
 class TokenGeneratorBase:
     def __init__(self,
                 model: PreTrainedModel,
-                tokenizer: PreTrainedTokenizer):
+                tokenizer: PreTrainedTokenizer,
+                prepare_model_inputs: Callable[[Any], Any] = lambda x: x):
         self.model = model
         self.tokenizer = tokenizer
+        self.prepare_model_inputs = prepare_model_inputs
 
     def generate_step(
         self,
@@ -47,6 +49,7 @@ class TokenGeneratorBase:
         input_ids = model_kwargs['input_ids']
         del model_kwargs['input_ids']
         model_inputs = self.model.prepare_inputs_for_generation(input_ids, **model_kwargs)
+        model_inputs = self.prepare_model_inputs(model_inputs)
 
         with torch.no_grad():
             result = self.model(**model_inputs, return_dict=True)
@@ -69,7 +72,8 @@ class NextTokenGenerator(TokenGeneratorBase):
                  model: PreTrainedModel,
                  tokenizer: PreTrainedTokenizer,
                  model_kwargs: Any,
-                 prompt_length: int):
+                 prompt_length: int,
+                 prepare_model_inputs: Callable[[Any], Any] = lambda x: x):
         super().__init__(model, tokenizer)
         self.model = model
         self.tokenizer = tokenizer
@@ -109,8 +113,9 @@ class NextTokenGenerator(TokenGeneratorBase):
 class FirstTokenGenerator(TokenGeneratorBase):
     def __init__(self,
                  model: PreTrainedModel,
-                 tokenizer: PreTrainedTokenizer):
-        super().__init__(model, tokenizer)
+                 tokenizer: PreTrainedTokenizer,
+                 prepare_model_inputs: Callable[[Any], Any] = lambda x: x):
+        super().__init__(model, tokenizer, prepare_model_inputs)
 
 
     def __call__(self,
@@ -175,7 +180,8 @@ class FirstTokenGenerator(TokenGeneratorBase):
             self.model,
             self.tokenizer,
             model_kwargs,
-            prompt_length=prompt_length
+            prompt_length=prompt_length,
+            prepare_model_inputs=self.prepare_model_inputs
         )
 
         return step_results, next_token_generator

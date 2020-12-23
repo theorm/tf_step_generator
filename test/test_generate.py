@@ -77,7 +77,6 @@ class GenerateConditionalTestCase(unittest.TestCase):
         assert next_token_generator is not None
         assert step.sample_token_id() is not None
 
-        print('|', next_token_generator.get_generated_text(), '|')
         assert next_token_generator.get_generated_text() == 'In'
 
 
