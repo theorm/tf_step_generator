@@ -128,8 +128,7 @@ class FirstTokenGenerator(TokenGeneratorBase):
         tokenized_input = {k: v.to(self.model.device) for k, v in tokenized_input.items()}
 
         model_kwargs = {
-            **tokenized_input,
-            'use_cache': False
+            **tokenized_input
         }
 
         # From: https://github.com/huggingface/transformers/blob/1558d191e66fe3b5b34c8d9a6ce657a39d5133ae/src/transformers/generation_utils.py#L501
@@ -166,6 +165,8 @@ class FirstTokenGenerator(TokenGeneratorBase):
         model_kwargs['input_ids'] = input_ids
 
         prompt_length = tokenized_input['input_ids'].shape[-1]
+
+        model_kwargs['use_cache'] = False
 
         next_tokens_ids, next_tokens_probabilities, model_kwargs = self.generate_step(
             model_kwargs,
