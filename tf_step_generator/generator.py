@@ -35,10 +35,12 @@ class TokenGeneratorBase:
     def __init__(self,
                 model: PreTrainedModel,
                 tokenizer: PreTrainedTokenizer,
-                prepare_model_inputs: Callable[[Any], Any] = lambda x: x):
+                prepare_model_inputs: Callable[[Any], Any] = lambda x: x,
+                get_next_token_logits: Callable[[Any], torch.Tensor] = default_get_next_token_logits):
         self.model = model
         self.tokenizer = tokenizer
         self.prepare_model_inputs = prepare_model_inputs
+        self.get_next_token_logits = get_next_token_logits
 
     def generate_step(
         self,
@@ -55,7 +57,7 @@ class TokenGeneratorBase:
         with torch.no_grad():
             result = self.model(**model_inputs, return_dict=True)
 
-        logits = default_get_next_token_logits(result)
+        logits = self.get_next_token_logits(result)
         logits_processors = get_logits_processor_list(top_k, top_p, no_repeat_ngram_size=no_repeat_ngram_size)
         processed_logits = logits_processors(input_ids, logits)
         next_tokens_ids, next_tokens_probabilities = get_token_ids_and_probabilities(processed_logits)
@@ -74,7 +76,8 @@ class NextTokenGenerator(TokenGeneratorBase):
                  tokenizer: PreTrainedTokenizer,
                  model_kwargs: Any,
                  prompt_length: int,
-                 prepare_model_inputs: Callable[[Any], Any] = lambda x: x):
+                 prepare_model_inputs: Callable[[Any], Any] = lambda x: x,
+                 get_next_token_logits: Callable[[Any], torch.Tensor] = default_get_next_token_logits):
         super().__init__(model, tokenizer)
         self.model = model
         self.tokenizer = tokenizer
@@ -118,8 +121,9 @@ class FirstTokenGenerator(TokenGeneratorBase):
                  model: PreTrainedModel,
                  tokenizer: PreTrainedTokenizer,
                  prepare_model_inputs: Callable[[Any], Any] = lambda x: x,
-                 prepare_tokenized_input: Callable[[Any], Any] = lambda x: x,):
-        super().__init__(model, tokenizer, prepare_model_inputs)
+                 prepare_tokenized_input: Callable[[Any], Any] = lambda x: x,
+                 get_next_token_logits: Callable[[Any], torch.Tensor] = default_get_next_token_logits):
+        super().__init__(model, tokenizer, prepare_model_inputs, get_next_token_logits=get_next_token_logits)
         self.prepare_tokenized_input = prepare_tokenized_input
 
     def __call__(self,
@@ -189,7 +193,8 @@ class FirstTokenGenerator(TokenGeneratorBase):
             self.tokenizer,
             model_kwargs,
             prompt_length=prompt_length,
-            prepare_model_inputs=self.prepare_model_inputs
+            prepare_model_inputs=self.prepare_model_inputs,
+            get_next_token_logits=self.get_next_token_logits,
         )
 
         return step_results, next_token_generator
