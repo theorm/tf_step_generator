@@ -81,7 +81,7 @@ class NextTokenGenerator(TokenGeneratorBase):
                  top_k: Optional[int] = 3,
                  top_p: Optional[float] = None,
                  no_repeat_ngram_size: Optional[int] = None):
-        super().__init__(model, tokenizer)
+        super().__init__(model, tokenizer, prepare_model_inputs, get_next_token_logits)
         self.model = model
         self.tokenizer = tokenizer
         self.model_kwargs = model_kwargs

@@ -26,7 +26,7 @@ class GenerateLMTestCase(unittest.TestCase):
 
     def test_generate_two_tokens(self):
         generator = FirstTokenGenerator(self.model, self.tokenizer)
-        step, next_token_generator = generator('In a galaxy', top_k=3)
+        step, next_token_generator = generator('In a galaxy', top_k=3, no_repeat_ngram_size=5)
 
         next_token_id = int(step.next_ids[0].item())
 
