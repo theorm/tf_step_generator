@@ -1,7 +1,8 @@
 from typing import Any, Optional, Tuple
 import torch
 from torch.nn import functional as F
-from transformers import LogitsProcessorList, TopPLogitsWarper, TopKLogitsWarper
+from transformers import LogitsProcessorList, \
+    TopPLogitsWarper, TopKLogitsWarper, NoRepeatNGramLogitsProcessor
 
 def default_get_next_token_logits(model_output: Any) -> torch.Tensor:
     logits: torch.FloatTensor = model_output.logits
@@ -12,9 +13,12 @@ def default_get_next_token_logits(model_output: Any) -> torch.Tensor:
 def get_logits_processor_list(
     top_k: Optional[int],
     top_p: Optional[float],
+    no_repeat_ngram_size: Optional[int]
 ) -> LogitsProcessorList:
     items = LogitsProcessorList()
 
+    if no_repeat_ngram_size is not None:
+        items.append(NoRepeatNGramLogitsProcessor(no_repeat_ngram_size))
     if top_p is not None:
         items.append(TopPLogitsWarper(top_p))
 

@@ -44,7 +44,8 @@ class TokenGeneratorBase:
         self,
         model_kwargs: Any,
         top_k: Optional[int] = 3,
-        top_p: Optional[float] = None
+        top_p: Optional[float] = None,
+        no_repeat_ngram_size: Optional[int] = None
     ) -> Tuple[torch.LongTensor, torch.FloatTensor, Any]:
         input_ids = model_kwargs['input_ids']
         del model_kwargs['input_ids']
@@ -55,7 +56,7 @@ class TokenGeneratorBase:
             result = self.model(**model_inputs, return_dict=True)
 
         logits = default_get_next_token_logits(result)
-        logits_processors = get_logits_processor_list(top_k, top_p)
+        logits_processors = get_logits_processor_list(top_k, top_p, no_repeat_ngram_size=no_repeat_ngram_size)
         processed_logits = logits_processors(input_ids, logits)
         next_tokens_ids, next_tokens_probabilities = get_token_ids_and_probabilities(processed_logits)
 
@@ -83,7 +84,8 @@ class NextTokenGenerator(TokenGeneratorBase):
     def __call__(self,
                  next_token_id: int,
                  top_k: Optional[int] = 3,
-                 top_p: Optional[float] = None) -> Tuple[GenerationStepResults, 'NextTokenGenerator']:
+                 top_p: Optional[float] = None,
+                 no_repeat_ngram_size: Optional[int] = None) -> Tuple[GenerationStepResults, 'NextTokenGenerator']:
 
         self.model_kwargs['input_ids'] = torch.cat([
             self.model_kwargs['input_ids'],
@@ -93,7 +95,8 @@ class NextTokenGenerator(TokenGeneratorBase):
         next_tokens_ids, next_tokens_probabilities, model_kwargs = self.generate_step(
             self.model_kwargs,
             top_k=top_k,
-            top_p=top_p
+            top_p=top_p,
+            no_repeat_ngram_size=no_repeat_ngram_size
         )
         self.model_kwargs = model_kwargs
 
@@ -122,7 +125,8 @@ class FirstTokenGenerator(TokenGeneratorBase):
     def __call__(self,
                  input_text: str,
                  top_k: Optional[int] = 3,
-                 top_p: Optional[float] = None) -> Tuple[GenerationStepResults, NextTokenGenerator]:
+                 top_p: Optional[float] = None,
+                 no_repeat_ngram_size: Optional[int] = None) -> Tuple[GenerationStepResults, NextTokenGenerator]:
         tokenized_input = self.tokenizer(input_text, return_tensors='pt')
         tokenized_input = self.prepare_tokenized_input(tokenized_input)
         tokenized_input = {k: v.to(self.model.device) for k, v in tokenized_input.items()}
@@ -171,7 +175,8 @@ class FirstTokenGenerator(TokenGeneratorBase):
         next_tokens_ids, next_tokens_probabilities, model_kwargs = self.generate_step(
             model_kwargs,
             top_k=top_k,
-            top_p=top_p
+            top_p=top_p,
+            no_repeat_ngram_size=no_repeat_ngram_size
         )
 
         step_results = GenerationStepResults(
