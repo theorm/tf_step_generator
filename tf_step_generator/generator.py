@@ -77,16 +77,23 @@ class NextTokenGenerator(TokenGeneratorBase):
                  model_kwargs: Any,
                  prompt_length: int,
                  prepare_model_inputs: Callable[[Any], Any] = lambda x: x,
-                 get_next_token_logits: Callable[[Any], torch.Tensor] = default_get_next_token_logits):
+                 get_next_token_logits: Callable[[Any], torch.Tensor] = default_get_next_token_logits,
+                 top_k: Optional[int] = 3,
+                 top_p: Optional[float] = None,
+                 no_repeat_ngram_size: Optional[int] = None):
         super().__init__(model, tokenizer)
         self.model = model
         self.tokenizer = tokenizer
         self.model_kwargs = model_kwargs
         self.prompt_length = prompt_length
 
+        self.previous_top_k = top_k
+        self.previous_top_p = top_p
+        self.previous_no_repeat_ngram_size = no_repeat_ngram_size
+
     def __call__(self,
                  next_token_id: int,
-                 top_k: Optional[int] = 3,
+                 top_k: Optional[int] = None,
                  top_p: Optional[float] = None,
                  no_repeat_ngram_size: Optional[int] = None) -> Tuple[GenerationStepResults, 'NextTokenGenerator']:
 
@@ -97,9 +104,9 @@ class NextTokenGenerator(TokenGeneratorBase):
 
         next_tokens_ids, next_tokens_probabilities, model_kwargs = self.generate_step(
             self.model_kwargs,
-            top_k=top_k,
-            top_p=top_p,
-            no_repeat_ngram_size=no_repeat_ngram_size
+            top_k=top_k if top_k is not None else self.previous_top_k,
+            top_p=top_p if top_p is not None else self.previous_top_p,
+            no_repeat_ngram_size=no_repeat_ngram_size if no_repeat_ngram_size is not None else self.previous_no_repeat_ngram_size
         )
         self.model_kwargs = model_kwargs
 
