@@ -202,6 +202,9 @@ class FirstTokenGenerator(TokenGeneratorBase):
             prompt_length=prompt_length,
             prepare_model_inputs=self.prepare_model_inputs,
             get_next_token_logits=self.get_next_token_logits,
+            top_k=top_k,
+            top_p=top_p,
+            no_repeat_ngram_size=no_repeat_ngram_size
         )
 
         return step_results, next_token_generator
