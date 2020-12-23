@@ -114,15 +114,17 @@ class FirstTokenGenerator(TokenGeneratorBase):
     def __init__(self,
                  model: PreTrainedModel,
                  tokenizer: PreTrainedTokenizer,
-                 prepare_model_inputs: Callable[[Any], Any] = lambda x: x):
+                 prepare_model_inputs: Callable[[Any], Any] = lambda x: x,
+                 prepare_tokenized_input: Callable[[Any], Any] = lambda x: x,):
         super().__init__(model, tokenizer, prepare_model_inputs)
-
+        self.prepare_tokenized_input = prepare_tokenized_input
 
     def __call__(self,
                  input_text: str,
                  top_k: Optional[int] = 3,
                  top_p: Optional[float] = None) -> Tuple[GenerationStepResults, NextTokenGenerator]:
         tokenized_input = self.tokenizer(input_text, return_tensors='pt')
+        tokenized_input = self.prepare_tokenized_input(tokenized_input)
         tokenized_input = {k: v.to(self.model.device) for k, v in tokenized_input.items()}
 
         model_kwargs = {
